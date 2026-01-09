@@ -1,53 +1,50 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
-// Screen Imports
+// Screens
 import BottomTabs from "./BottomTabs";
 import LoginScreen from "../screens/auth/LoginScreen";
 import HospitalDetailsScreen from "../screens/hospital/HospitalDetailsScreen";
-import BookingScreen from "../screens/booking/BookingScreen"; // <--- New Import
+import BookingScreen from "../screens/booking/BookingScreen";
 
-// Define all routes here
 export type RootStackParamList = {
   Login: undefined;
   Main: undefined;
   HospitalDetails: { id: string };
-  Booking: { doctorId: string }; // <--- New Type
+  Booking: { doctorId: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function RootNavigator() {
-  // Prototype: Set to true to bypass login for now
-  const isLoggedIn = true;
-
+  // CHANGE: We set the initial route to 'Login' so the app starts there,
+  // but we keep 'Main' in the stack so we can navigate to it.
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      {isLoggedIn ? (
-        <>
-          {/* Main App (Tabs) */}
-          <Stack.Screen name="Main" component={BottomTabs} />
+    <Stack.Navigator
+      initialRouteName="Login"
+      screenOptions={{ headerShown: false }}
+    >
+      {/* 1. Auth Screen */}
+      <Stack.Screen name="Login" component={LoginScreen} />
 
-          {/* Details Screen (Slide from Right) */}
-          <Stack.Screen
-            name="HospitalDetails"
-            component={HospitalDetailsScreen}
-            options={{ animation: "slide_from_right" }}
-          />
+      {/* 2. Main App (Tabs) */}
+      <Stack.Screen name="Main" component={BottomTabs} />
 
-          {/* Booking Screen (Slide from Bottom - Modal Feel) */}
-          <Stack.Screen
-            name="Booking"
-            component={BookingScreen}
-            options={{
-              animation: "slide_from_bottom",
-              presentation: "modal", // Optional: Makes it feel like a focused task
-            }}
-          />
-        </>
-      ) : (
-        <Stack.Screen name="Login" component={LoginScreen} />
-      )}
+      {/* 3. Feature Screens */}
+      <Stack.Screen
+        name="HospitalDetails"
+        component={HospitalDetailsScreen}
+        options={{ animation: "slide_from_right" }}
+      />
+
+      <Stack.Screen
+        name="Booking"
+        component={BookingScreen}
+        options={{
+          animation: "slide_from_bottom",
+          presentation: "modal",
+        }}
+      />
     </Stack.Navigator>
   );
 }

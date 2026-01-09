@@ -43,7 +43,13 @@ export default function LoginScreen() {
   const [phoneNumber, setPhoneNumber] = useState("");
 
   const handleContinue = () => {
-    // Navigate to Main App on success
+    // Simple validation
+    if (phoneNumber.length < 10) {
+      alert("Please enter a valid phone number");
+      return;
+    }
+
+    // Now this will work because 'Main' is registered in the RootNavigator
     navigation.replace("Main");
   };
 
