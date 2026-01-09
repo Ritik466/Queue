@@ -33,6 +33,6 @@ export default function Screen({ children, scroll = false, style }: Props) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
-  container: { flex: 1, paddingHorizontal: 20 },
+  container: { flex: 1, paddingHorizontal: 18 },
   scroll: { paddingHorizontal: 20 },
 });

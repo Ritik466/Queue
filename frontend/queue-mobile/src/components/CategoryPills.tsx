@@ -1,4 +1,3 @@
-// src/components/CategoryPills.tsx
 import React from "react";
 import {
   ScrollView,
@@ -7,73 +6,73 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import { spacing, colors } from "../theme";
-import { HospitalType } from "../services/mockData";
 
-export type Category = "All" | HospitalType;
-
-const CATEGORIES: Category[] = ["All", "Hospital", "Clinic", "Diagnostics"];
-
-type Props = {
-  active: Category;
-  onChange: (c: Category) => void;
-};
-
-export default function CategoryPills({ active, onChange }: Props) {
-  return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.row}
-    >
-      {CATEGORIES.map((c) => {
-        const isActive = c === active;
-        return (
-          <View key={c} style={styles.pillWrap}>
-            <TouchableOpacity
-              onPress={() => onChange(c)}
-              style={[styles.pill, isActive && styles.pillActive]}
-              activeOpacity={0.85}
-            >
-              <Text
-                style={[styles.pillText, isActive && styles.pillTextActive]}
-              >
-                {c}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        );
-      })}
-    </ScrollView>
-  );
+// Define what props this component accepts
+interface CategoryPillsProps {
+  categories: string[];
+  activeCategory: string;
+  onCategoryPress: (category: string) => void;
 }
 
+const CategoryPills: React.FC<CategoryPillsProps> = ({
+  categories,
+  activeCategory,
+  onCategoryPress,
+}) => {
+  return (
+    <View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.container}
+      >
+        {categories.map((category, index) => {
+          const isActive = activeCategory === category;
+          return (
+            <TouchableOpacity
+              key={index}
+              style={[styles.pill, isActive && styles.activePill]}
+              onPress={() => onCategoryPress(category)}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.text, isActive && styles.activeText]}>
+                {category}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
+};
+
 const styles = StyleSheet.create({
-  row: {
-    paddingVertical: 8,
-  },
-  pillWrap: {
-    marginRight: spacing.sm,
+  container: {
+    paddingHorizontal: 0, // Parent handles padding
+    paddingVertical: 4,
   },
   pill: {
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: colors.pillBg,
+    borderRadius: 20,
+    backgroundColor: "#F3F4F6", // Light grey default
+    marginRight: 10,
     borderWidth: 1,
     borderColor: "transparent",
   },
-  pillActive: {
-    backgroundColor: "#fff",
-    borderColor: colors.textPrimary,
-    borderWidth: 1,
+  activePill: {
+    backgroundColor: "#047857", // Brand Green
+    borderColor: "#047857",
   },
-  pillText: {
-    color: colors.textSecondary,
-    fontSize: 15,
+  text: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#4B5563",
   },
-  pillTextActive: {
-    color: colors.textPrimary,
+  activeText: {
+    color: "#FFFFFF",
     fontWeight: "600",
   },
 });
+
+export default CategoryPills;
