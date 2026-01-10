@@ -3,36 +3,51 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   TextInput,
   KeyboardAvoidingView,
   Platform,
   StatusBar,
   ScrollView,
+  Dimensions,
 } from "react-native";
+// We keep this for iOS, but we will add extra protection for Android
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 
+const { height } = Dimensions.get("window");
+
 // --- THEME ---
 const COLORS = {
-  primary: "#047857", // Brand Emerald Green (Replaces Airbnb Red)
+  primary: "#047857",
   text: "#111827",
   subText: "#6B7280",
-  border: "#D1D5DB", // Slightly darker border for inputs
-  surface: "#FFFFFF",
+  border: "#D1D5DB",
   bg: "#FFFFFF",
 };
 
-// --- COMPONENT: SOCIAL BUTTON ---
-const SocialButton = ({ icon, label, onPress, isBrandIcon = true }: any) => (
+// --- COMPONENTS ---
+interface SocialBtnProps {
+  icon: any;
+  label: string;
+  onPress: () => void;
+  iconColor?: string;
+}
+
+const SocialButton = ({
+  icon,
+  label,
+  onPress,
+  iconColor = "#111",
+}: SocialBtnProps) => (
   <TouchableOpacity
     style={styles.socialBtn}
     onPress={onPress}
     activeOpacity={0.7}
   >
     <View style={styles.socialIconWrapper}>
-      <Ionicons name={icon} size={20} color="#111" />
+      <Ionicons name={icon} size={22} color={iconColor} />
     </View>
     <Text style={styles.socialBtnText}>{label}</Text>
   </TouchableOpacity>
@@ -43,121 +58,137 @@ export default function LoginScreen() {
   const [phoneNumber, setPhoneNumber] = useState("");
 
   const handleContinue = () => {
-    // Simple validation
     if (phoneNumber.length < 10) {
       alert("Please enter a valid phone number");
       return;
     }
-
-    // Now this will work because 'Main' is registered in the RootNavigator
     navigation.replace("Main");
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFF" />
+    <View style={styles.mainContainer}>
+      <StatusBar
+        barStyle="dark-content"
+        backgroundColor="#FFFFFF"
+        translucent={false}
+      />
 
-      {/* 1. HEADER */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.closeBtn}
-        >
-          <Ionicons name="close" size={24} color={COLORS.text} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Log in or sign up</Text>
-        <View style={{ width: 24 }} />
-      </View>
-
+      {/* 1. KEYBOARD HANDLING: 'padding' works best for most cases on both,
+          but sometimes 'undefined' is better for Android depending on manifest.
+          We use a flex structure to prevent jitter. */}
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={{ flex: 1 }}
       >
-        <ScrollView contentContainerStyle={styles.content}>
-          {/* 2. THE INPUT BOX (Split Style) */}
-          <Text style={styles.welcomeText}>Welcome to Queue</Text>
+        <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
+          {/* HEADER */}
+          <View style={styles.header}>
+            <TouchableOpacity
+              onPress={() => console.log("Close")}
+              style={styles.closeBtn}
+            >
+              <Ionicons name="close" size={24} color={COLORS.text} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Log in or sign up</Text>
+            <View style={{ width: 24 }} />
+          </View>
 
-          <View style={styles.inputContainer}>
-            {/* Top Half: Country Code */}
-            <View style={styles.inputTop}>
-              <Text style={styles.inputLabel}>Country/Region</Text>
-              <View style={styles.countryRow}>
-                <Text style={styles.countryText}>India (+91)</Text>
-                <Ionicons name="chevron-down" size={16} color={COLORS.text} />
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            <Text style={styles.welcomeText}>Welcome to Queue</Text>
+
+            {/* INPUT SECTION */}
+            <View style={styles.inputContainer}>
+              <View style={styles.inputTop}>
+                <Text style={styles.inputLabel}>Country/Region</Text>
+                <View style={styles.countryRow}>
+                  <Text style={styles.countryText}>India (+91)</Text>
+                  <Ionicons name="chevron-down" size={16} color={COLORS.text} />
+                </View>
+              </View>
+              <View style={styles.inputDivider} />
+              <View style={styles.inputBottom}>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="Phone number"
+                  placeholderTextColor={COLORS.subText}
+                  keyboardType="phone-pad"
+                  value={phoneNumber}
+                  onChangeText={setPhoneNumber}
+                  // autoFocus can cause jitter on load in Android, set false
+                  autoFocus={false}
+                />
               </View>
             </View>
 
-            <View style={styles.inputDivider} />
+            <Text style={styles.helperText}>
+              We'll call or text you to confirm your number. Standard message
+              and data rates apply.
+            </Text>
 
-            {/* Bottom Half: Phone Number */}
-            <View style={styles.inputBottom}>
-              <TextInput
-                style={styles.textInput}
-                placeholder="Phone number"
-                placeholderTextColor={COLORS.subText}
-                keyboardType="phone-pad"
-                value={phoneNumber}
-                onChangeText={setPhoneNumber}
-                autoFocus
+            <TouchableOpacity
+              style={styles.continueBtn}
+              onPress={handleContinue}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.continueText}>Continue</Text>
+            </TouchableOpacity>
+
+            <View style={styles.orContainer}>
+              <View style={styles.line} />
+              <Text style={styles.orText}>or</Text>
+              <View style={styles.line} />
+            </View>
+
+            {/* SOCIAL STACK */}
+            <View style={styles.socialStack}>
+              <SocialButton
+                icon="mail-outline"
+                label="Continue with email"
+                onPress={() => {}}
+                iconColor="#374151"
+              />
+              <SocialButton
+                icon="logo-facebook"
+                label="Continue with Facebook"
+                onPress={() => {}}
+                iconColor="#1877F2"
+              />
+              <SocialButton
+                icon="logo-google"
+                label="Continue with Google"
+                onPress={() => {}}
+                iconColor="#DB4437"
+              />
+              <SocialButton
+                icon="logo-apple"
+                label="Continue with Apple"
+                onPress={() => {}}
+                iconColor="#000000"
               />
             </View>
-          </View>
 
-          <Text style={styles.helperText}>
-            We'll call or text you to confirm your number. Standard message and
-            data rates apply.
-          </Text>
-
-          {/* 3. PRIMARY ACTION */}
-          <TouchableOpacity
-            style={styles.continueBtn}
-            onPress={handleContinue}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.continueText}>Continue</Text>
-          </TouchableOpacity>
-
-          {/* 4. DIVIDER */}
-          <View style={styles.orContainer}>
-            <View style={styles.line} />
-            <Text style={styles.orText}>or</Text>
-            <View style={styles.line} />
-          </View>
-
-          {/* 5. SOCIAL OPTIONS */}
-          <View style={styles.socialStack}>
-            <SocialButton
-              icon="mail-outline"
-              label="Continue with email"
-              onPress={() => {}}
-              isBrandIcon={false}
-            />
-            <SocialButton
-              icon="logo-apple"
-              label="Continue with Apple"
-              onPress={() => {}}
-            />
-            <SocialButton
-              icon="logo-google"
-              label="Continue with Google"
-              onPress={() => {}}
-            />
-            <SocialButton
-              icon="logo-facebook"
-              label="Continue with Facebook"
-              onPress={() => {}}
-            />
-          </View>
-        </ScrollView>
+            {/* Bottom spacer for scrolling */}
+            <View style={{ height: 40 }} />
+          </ScrollView>
+        </SafeAreaView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  mainContainer: {
     flex: 1,
     backgroundColor: COLORS.bg,
+  },
+  safeArea: {
+    flex: 1,
+    // ANDROID FIX: Add manual padding if StatusBar is translucent
+    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
   },
   header: {
     flexDirection: "row",
@@ -167,6 +198,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: "#F3F4F6",
+    backgroundColor: COLORS.bg, // Ensure header is opaque
   },
   closeBtn: {
     padding: 4,
@@ -177,17 +209,19 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: COLORS.text,
   },
-  content: {
+  scrollContent: {
     padding: 24,
+    flexGrow: 1, // Ensures content takes full space preventing jitter
   },
   welcomeText: {
     fontSize: 22,
     fontWeight: "700",
     color: COLORS.text,
     marginBottom: 24,
+    marginTop: 10,
   },
 
-  // INPUT CONTAINER STYLES
+  // Input
   inputContainer: {
     borderWidth: 1,
     borderColor: COLORS.border,
@@ -220,16 +254,15 @@ const styles = StyleSheet.create({
   },
   inputBottom: {
     paddingHorizontal: 16,
-    paddingVertical: 14, // Slightly taller for phone input
+    paddingVertical: 14,
     backgroundColor: "#FFF",
   },
   textInput: {
     fontSize: 16,
     color: COLORS.text,
     height: 24,
-    padding: 0, // Remove default Android padding
+    padding: 0,
   },
-
   helperText: {
     fontSize: 12,
     color: COLORS.subText,
@@ -237,14 +270,13 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
 
-  // BUTTONS
+  // Button
   continueBtn: {
-    backgroundColor: COLORS.primary, // Emerald Green
+    backgroundColor: COLORS.primary,
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: "center",
     marginBottom: 24,
-    // Soft shadow
     shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
@@ -257,7 +289,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 
-  // OR DIVIDER
   orContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -274,28 +305,29 @@ const styles = StyleSheet.create({
     color: COLORS.subText,
   },
 
-  // SOCIAL STACK
   socialStack: {
-    gap: 12, // Space between buttons
+    gap: 16,
   },
   socialBtn: {
     flexDirection: "row",
-    alignItems: "center", // Center vertically
+    alignItems: "center",
     paddingVertical: 14,
     paddingHorizontal: 20,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.text, // Darker border like reference
+    borderColor: "#111",
     backgroundColor: "#FFF",
-    position: "relative", // For icon positioning
+    position: "relative",
   },
   socialIconWrapper: {
     position: "absolute",
-    left: 20, // Pin icon to left
+    left: 20,
+    width: 24,
+    alignItems: "center",
   },
   socialBtnText: {
     flex: 1,
-    textAlign: "center", // Center text in remaining space
+    textAlign: "center",
     fontSize: 14,
     fontWeight: "600",
     color: COLORS.text,
