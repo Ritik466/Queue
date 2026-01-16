@@ -6,262 +6,343 @@ import {
   ScrollView,
   TouchableOpacity,
   StatusBar,
+  Switch,
+  Alert,
   Dimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Animatable from "react-native-animatable";
-
-// IMPORTS FROM OUR NEW ARCHITECTURE
-import { COLORS, SIZES, SHADOWS } from "../../theme";
-import Header from "../../components/Header";
-import PrimaryButton from "../../components/PrimaryButton";
 import { useQueueStore } from "../../store/queueStore";
+import { COLORS, SHADOWS } from "../../theme";
 
 const { width } = Dimensions.get("window");
 
-// Reusable Stat Component (Local)
-const StatBox = ({ icon, value, label, color }: any) => (
-  <View style={styles.statBox}>
-    <View style={[styles.iconCircle, { backgroundColor: color + "15" }]}>
-      <Ionicons name={icon} size={22} color={color} />
+// --- MINIMAL HEADER (With Integrated Status) ---
+const DashboardHeader = ({ navigation, isOnline, toggleOnline }: any) => (
+  <View style={styles.header}>
+    <View>
+      <Text style={styles.greeting}>GOOD MORNING,</Text>
+      <Text style={styles.docName}>Dr. Trafalgar Law</Text>
     </View>
-    <Text style={styles.statValue}>{value}</Text>
-    <Text style={styles.statLabel}>{label}</Text>
+
+    <View style={styles.headerRight}>
+      {/* Status Pill - Integrated here to save space */}
+      <View
+        style={[
+          styles.statusPill,
+          isOnline ? styles.pillOnline : styles.pillOffline,
+        ]}
+      >
+        <View
+          style={[
+            styles.statusDot,
+            { backgroundColor: isOnline ? "#10B981" : "#64748B" },
+          ]}
+        />
+        <Text
+          style={[
+            styles.statusText,
+            { color: isOnline ? "#065F46" : "#475569" },
+          ]}
+        >
+          {isOnline ? "Online" : "Offline"}
+        </Text>
+        <Switch
+          value={isOnline}
+          onValueChange={toggleOnline}
+          trackColor={{ false: "transparent", true: "transparent" }}
+          thumbColor={isOnline ? "#10B981" : "#64748B"}
+          style={{ transform: [{ scale: 0.6 }], marginRight: -6 }}
+        />
+      </View>
+
+      <TouchableOpacity
+        onPress={() => navigation.navigate("Settings")}
+        style={styles.profileBtn}
+      >
+        <Ionicons name="person" size={18} color="#1E293B" />
+      </TouchableOpacity>
+    </View>
   </View>
 );
 
 export default function DashboardScreen({ navigation }: any) {
-  // CONNECT TO LIVE DATA STORE
-  const {
-    currentPatient,
-    stats,
-    isOnline,
-    toggleOnline,
-    callNextPatient,
-    queue,
-  } = useQueueStore();
+  const { currentPatient, isOnline, toggleOnline, callNextPatient, queue } =
+    useQueueStore();
 
-  const handleCallNext = () => {
-    callNextPatient();
-    // In a real app, trigger haptic feedback here
+  const handleBroadcast = () => {
+    Alert.alert(
+      "Broadcast Announcement",
+      "Send a notification to waiting patients?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Running Late (10m)",
+          onPress: () => Alert.alert("Sent", "Notified: 10m Delay"),
+        },
+        {
+          text: "Emergency",
+          onPress: () => Alert.alert("Sent", "Notified: Emergency"),
+        },
+      ],
+    );
   };
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.bg} />
+      <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
 
-      {/* 1. REUSABLE HEADER (With Settings Link) */}
-      <Header
-        title="Dashboard"
-        rightIcon="settings-outline"
-        onRightPress={() => navigation.navigate("Settings")}
+      <DashboardHeader
+        navigation={navigation}
+        isOnline={isOnline}
+        toggleOnline={toggleOnline}
       />
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
-        {/* 2. WELCOME & STATUS SECTION */}
-        <View style={styles.welcomeRow}>
-          <View>
-            <Text style={styles.greeting}>Good Morning,</Text>
-            <Text style={styles.docName}>Dr. Trafalgar Law</Text>
-          </View>
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={toggleOnline}
-            style={[
-              styles.statusBadge,
-              {
-                backgroundColor: isOnline ? "#ECFDF5" : "#FEF2F2",
-                borderColor: isOnline ? "#A7F3D0" : "#FECACA",
-              },
-            ]}
-          >
-            <View
-              style={[
-                styles.statusDot,
-                { backgroundColor: isOnline ? COLORS.success : COLORS.danger },
-              ]}
-            />
-            <Text
-              style={[
-                styles.statusText,
-                { color: isOnline ? COLORS.success : COLORS.danger },
-              ]}
-            >
-              {isOnline ? "ONLINE" : "PAUSED"}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* 3. MAIN "UNICORN" CARD (Gradient + Glass) */}
-        <Animatable.View
-          animation="fadeInUp"
-          duration={800}
-          style={styles.mainCardShadow}
+        {/* HERO CARD - CLICKABLE */}
+        <TouchableOpacity
+          activeOpacity={0.95}
+          onPress={() => {
+            if (currentPatient) navigation.navigate("Consultation");
+            else Alert.alert("Queue Empty", "Call a patient to start.");
+          }}
         >
-          <LinearGradient
-            colors={[COLORS.primary, COLORS.primaryDark]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.mainCard}
+          <Animatable.View
+            animation="fadeInUp"
+            duration={600}
+            style={styles.heroCardShadow}
           >
-            {/* Live Indicator */}
-            <View style={styles.cardHeader}>
-              <Text style={styles.cardLabel}>NOW SERVING</Text>
-              <View style={styles.liveTag}>
-                <Animatable.View
-                  animation="pulse"
-                  iterationCount="infinite"
-                  style={styles.liveDot}
-                />
-                <Text style={styles.liveText}>LIVE</Text>
+            <LinearGradient
+              colors={["#2563EB", "#1D4ED8"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.heroCard}
+            >
+              <View style={styles.cardHeader}>
+                <Text style={styles.cardLabel}>NOW SERVING</Text>
+                {isOnline && (
+                  <View style={styles.liveTag}>
+                    <Animatable.View
+                      animation="pulse"
+                      iterationCount="infinite"
+                      style={styles.liveDot}
+                    />
+                    <Text style={styles.liveText}>LIVE</Text>
+                  </View>
+                )}
               </View>
-            </View>
 
-            {/* The Big Token Number */}
-            <View style={styles.tokenContainer}>
-              <Text style={styles.tokenSymbol}>#</Text>
-              <Animatable.Text
-                key={currentPatient?.token} // Triggers animation on change
-                animation="rubberBand" // Bouncy effect
-                style={styles.tokenNumber}
-              >
-                {currentPatient ? currentPatient.token : "--"}
-              </Animatable.Text>
-            </View>
+              <View style={styles.tokenContainer}>
+                <Text style={styles.hash}>#</Text>
+                <Text style={styles.tokenVal}>
+                  {currentPatient ? currentPatient.token : "--"}
+                </Text>
+              </View>
 
-            {/* Patient Details */}
-            <View style={styles.patientInfo}>
-              <Text style={styles.patientName} numberOfLines={1}>
-                {currentPatient
-                  ? currentPatient.name
-                  : "Waiting for patients..."}
-              </Text>
-              <Text style={styles.patientMeta}>
-                {currentPatient
-                  ? `${currentPatient.type} • Arrived ${currentPatient.arrivalTime}`
-                  : "Queue is currently empty"}
-              </Text>
-            </View>
-          </LinearGradient>
+              <View style={styles.patientInfo}>
+                <Text style={styles.pName}>
+                  {currentPatient ? currentPatient.name : "No Active Patient"}
+                </Text>
+                <Text style={styles.pDetail}>
+                  {currentPatient
+                    ? `${currentPatient.type} • ${currentPatient.arrivalTime}`
+                    : "Waiting for next patient..."}
+                </Text>
+              </View>
+            </LinearGradient>
 
-          {/* 4. OVERLAPPING ACTION PANEL */}
-          <View style={styles.actionPanel}>
-            <View style={styles.queueInfo}>
-              <Ionicons name="people" size={20} color={COLORS.subText} />
-              <Text style={styles.queueText}>
-                <Text style={styles.queueBold}>{queue.length}</Text> Patients
-                Waiting
-              </Text>
-            </View>
-
-            <View style={styles.btnRow}>
-              {/* Secondary Button (View List) */}
+            {/* QUICK ACTIONS - Integrated elegantly */}
+            <View style={styles.actionRow}>
               <TouchableOpacity
-                style={styles.secondaryBtn}
+                style={styles.actionBtn}
                 onPress={() => navigation.navigate("PatientList")}
               >
-                <Text style={styles.secondaryBtnText}>View Queue</Text>
+                <Ionicons name="list" size={20} color={COLORS.primary} />
+                <Text style={styles.actionText}>Queue</Text>
               </TouchableOpacity>
 
-              {/* Primary Action (Call Next) */}
-              <View style={{ flex: 1.5 }}>
-                <PrimaryButton
-                  label="Call Next"
-                  onPress={handleCallNext}
-                  disabled={queue.length === 0}
-                  style={{ height: 50, borderRadius: 14 }}
-                />
-              </View>
-            </View>
-          </View>
-        </Animatable.View>
+              <View style={styles.vertDivider} />
 
-        {/* 5. STATS GRID (Using Design System) */}
-        <Text style={styles.sectionTitle}>Session Performance</Text>
-        <View style={styles.statsGrid}>
-          <StatBox
-            icon="checkmark-circle"
-            value={stats.completed}
-            label="Done"
-            color={COLORS.primary}
-          />
-          <StatBox
-            icon="time"
-            value={stats.avgTime}
-            label="Avg Time"
-            color={COLORS.success}
-          />
-          <StatBox
-            icon="alert-circle"
-            value="2"
-            label="No Show"
-            color={COLORS.danger}
-          />
+              <TouchableOpacity
+                style={styles.actionBtn}
+                onPress={handleBroadcast}
+              >
+                <Ionicons
+                  name="megaphone-outline"
+                  size={20}
+                  color={COLORS.warning}
+                />
+                <Text style={styles.actionText}>Notify</Text>
+              </TouchableOpacity>
+
+              <View style={styles.vertDivider} />
+
+              <TouchableOpacity
+                style={styles.actionBtn}
+                onPress={() => navigation.navigate("Scan")}
+              >
+                <Ionicons
+                  name="qr-code-outline"
+                  size={20}
+                  color={COLORS.success}
+                />
+                <Text style={styles.actionText}>Scan</Text>
+              </TouchableOpacity>
+            </View>
+          </Animatable.View>
+        </TouchableOpacity>
+
+        {/* UP NEXT LIST */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>UP NEXT</Text>
+          <View style={styles.countBadge}>
+            <Text style={styles.countText}>{queue.length}</Text>
+          </View>
         </View>
+
+        {queue.length > 0 ? (
+          <View style={styles.listContainer}>
+            {queue.slice(0, 3).map((p, i) => (
+              <View
+                key={p.id}
+                style={[
+                  styles.listItem,
+                  i === queue.length - 1 && styles.lastItem,
+                ]}
+              >
+                <View style={styles.circleToken}>
+                  <Text style={styles.circleText}>{p.token}</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.listName}>{p.name}</Text>
+                  <Text style={styles.listType}>{p.type}</Text>
+                </View>
+                <View style={styles.waitBadge}>
+                  <Text style={styles.waitText}>WAITING</Text>
+                </View>
+              </View>
+            ))}
+            <TouchableOpacity
+              style={styles.viewAllBtn}
+              onPress={() => navigation.navigate("PatientList")}
+            >
+              <Text style={styles.viewAllText}>View All Waiting Patients</Text>
+              <Ionicons name="arrow-forward" size={14} color={COLORS.primary} />
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.emptyState}>
+            <Ionicons name="cafe-outline" size={32} color="#94A3B8" />
+            <Text style={styles.emptyText}>Queue is clear.</Text>
+          </View>
+        )}
       </ScrollView>
+
+      {/* FLOATING ACTION BUTTON (Fixed Overlap) */}
+      <Animatable.View
+        animation="slideInUp"
+        duration={500}
+        style={styles.fabContainer}
+      >
+        <TouchableOpacity
+          style={[
+            styles.primaryBtn,
+            (!isOnline || queue.length === 0) && styles.disabledBtn,
+          ]}
+          onPress={callNextPatient}
+          activeOpacity={0.9}
+        >
+          <Text style={styles.primaryBtnText}>
+            {queue.length === 0 ? "NO PATIENTS" : "CALL NEXT PATIENT"}
+          </Text>
+          {queue.length > 0 && (
+            <Ionicons name="arrow-forward" size={20} color="#FFF" />
+          )}
+        </TouchableOpacity>
+      </Animatable.View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bg },
-  scrollContent: { padding: SIZES.padding, paddingBottom: 40 },
+  container: { flex: 1, backgroundColor: "#F8FAFC" },
 
-  // Welcome Section
-  welcomeRow: {
+  // Header
+  header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 24,
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    backgroundColor: "#F8FAFC",
   },
+  headerRight: { flexDirection: "row", alignItems: "center", gap: 12 },
   greeting: {
-    fontSize: 13,
-    color: COLORS.subText,
-    fontWeight: "600",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#94A3B8",
+    letterSpacing: 1,
   },
-  docName: {
-    fontSize: 20,
-    fontWeight: "800",
-    color: COLORS.text,
-    marginTop: 4,
-  },
+  docName: { fontSize: 20, fontWeight: "800", color: "#0F172A" },
 
-  statusBadge: {
+  statusPill: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingLeft: 10,
+    paddingRight: 4,
+    paddingVertical: 4,
     borderRadius: 20,
     borderWidth: 1,
   },
-  statusDot: { width: 8, height: 8, borderRadius: 4, marginRight: 8 },
-  statusText: { fontSize: 11, fontWeight: "800", letterSpacing: 0.5 },
+  pillOnline: { backgroundColor: "#ECFDF5", borderColor: "#D1FAE5" },
+  pillOffline: { backgroundColor: "#F1F5F9", borderColor: "#E2E8F0" },
+  statusDot: { width: 6, height: 6, borderRadius: 3, marginRight: 6 },
+  statusText: { fontSize: 12, fontWeight: "700", marginRight: 4 },
 
-  // Main Card
-  mainCardShadow: { ...SHADOWS.medium, marginBottom: 32 },
-  mainCard: {
-    padding: 24,
-    borderRadius: 32,
-    paddingBottom: 60,
-    position: "relative",
-    overflow: "hidden",
-  },
-
-  cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+  profileBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#FFF",
     alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
   },
+
+  // Scroll Content - BIG PADDING AT BOTTOM
+  scroll: { paddingHorizontal: 24, paddingBottom: 120, paddingTop: 10 },
+
+  // Hero Card
+  heroCardShadow: {
+    shadowColor: COLORS.primary,
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
+    borderRadius: 24,
+    marginBottom: 32,
+    backgroundColor: "#FFF",
+  },
+  heroCard: {
+    borderRadius: 24,
+    padding: 24,
+    paddingBottom: 80, // Extra space for overlapping actions
+    position: "relative",
+  },
+  cardHeader: { flexDirection: "row", justifyContent: "space-between" },
   cardLabel: {
-    color: "rgba(255,255,255,0.8)",
-    fontSize: 12,
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 11,
     fontWeight: "700",
     letterSpacing: 1,
   },
@@ -269,9 +350,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "rgba(255,255,255,0.2)",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
   },
   liveDot: {
     width: 6,
@@ -285,105 +366,136 @@ const styles = StyleSheet.create({
   tokenContainer: {
     flexDirection: "row",
     alignItems: "flex-start",
-    marginTop: 16,
-    marginBottom: 24,
-  },
-  tokenSymbol: {
-    fontSize: 40,
-    color: "rgba(255,255,255,0.6)",
-    fontWeight: "700",
     marginTop: 12,
   },
-  tokenNumber: {
-    fontSize: 80,
-    color: "#FFF",
-    fontWeight: "900",
-    lineHeight: 85,
-    marginLeft: 4,
-  },
-
-  patientInfo: { marginBottom: 16 },
-  patientName: {
-    fontSize: 20,
-    color: "#FFF",
+  hash: {
+    fontSize: 32,
+    color: "rgba(255,255,255,0.5)",
     fontWeight: "700",
-    marginBottom: 4,
+    marginTop: 8,
   },
-  patientMeta: {
-    fontSize: 14,
-    color: "rgba(255,255,255,0.8)",
-    fontWeight: "500",
-  },
+  tokenVal: { fontSize: 72, color: "#FFF", fontWeight: "900" },
 
-  // Action Panel (Overlaps the card)
-  actionPanel: {
-    backgroundColor: COLORS.surface,
-    marginTop: -40,
-    marginHorizontal: 0,
-    borderRadius: 24,
-    padding: 20,
-    ...SHADOWS.medium,
-  },
-  queueInfo: {
+  patientInfo: { marginTop: 4 },
+  pName: { fontSize: 20, color: "#FFF", fontWeight: "700" },
+  pDetail: { fontSize: 14, color: "rgba(255,255,255,0.8)", marginTop: 4 },
+
+  // Quick Actions (Floats over card)
+  actionRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    marginBottom: 16,
-  },
-  queueText: {
-    marginLeft: 10,
-    fontSize: 14,
-    color: COLORS.subText,
-    fontWeight: "500",
-  },
-  queueBold: { color: COLORS.text, fontWeight: "700" },
-
-  btnRow: { flexDirection: "row", gap: 12 },
-  secondaryBtn: {
-    flex: 1,
-    height: 50,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    justifyContent: "space-between",
     backgroundColor: "#FFF",
-  },
-  secondaryBtnText: { color: COLORS.text, fontWeight: "600", fontSize: 14 },
-
-  // Stats Grid
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: COLORS.text,
-    marginBottom: 16,
-    marginLeft: 4,
-  },
-  statsGrid: { flexDirection: "row", gap: 12 },
-  statBox: {
-    flex: 1,
-    backgroundColor: COLORS.surface,
-    padding: 16,
-    borderRadius: 20,
-    alignItems: "center",
+    marginHorizontal: 20,
+    marginTop: -40,
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 5,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: "#F1F5F9",
   },
-  iconCircle: {
-    width: 42,
-    height: 42,
+  actionBtn: { flex: 1, alignItems: "center", gap: 6, paddingVertical: 4 },
+  actionText: { fontSize: 12, fontWeight: "600", color: "#334155" },
+  vertDivider: { width: 1, height: 24, backgroundColor: "#F1F5F9" },
+
+  // List Section
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#94A3B8",
+    letterSpacing: 0.5,
+  },
+  countBadge: {
+    backgroundColor: "#F1F5F9",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  countText: { fontSize: 11, fontWeight: "700", color: "#64748B" },
+
+  listContainer: {
+    backgroundColor: "#FFF",
+    borderRadius: 20,
+    padding: 6,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  listItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F8FAFC",
+  },
+  lastItem: { borderBottomWidth: 0 },
+  circleToken: {
+    width: 40,
+    height: 40,
     borderRadius: 14,
+    backgroundColor: "#F8FAFC",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 10,
+    marginRight: 14,
   },
-  statValue: { fontSize: 18, fontWeight: "800", color: COLORS.text },
-  statLabel: {
-    fontSize: 12,
-    color: COLORS.subText,
-    marginTop: 4,
-    fontWeight: "500",
+  circleText: { fontWeight: "700", color: "#0F172A" },
+  listName: { fontSize: 15, fontWeight: "700", color: "#0F172A" },
+  listType: { fontSize: 12, color: "#64748B" },
+  waitBadge: {
+    backgroundColor: "#FFF7ED",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
   },
+  waitText: { fontSize: 10, fontWeight: "700", color: "#C2410C" },
+
+  viewAllBtn: {
+    padding: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    borderTopWidth: 1,
+    borderTopColor: "#F8FAFC",
+  },
+  viewAllText: { fontSize: 13, fontWeight: "700", color: COLORS.primary },
+
+  emptyState: {
+    padding: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFF",
+    borderRadius: 20,
+    borderStyle: "dashed",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  emptyText: { color: "#94A3B8", fontSize: 14, marginTop: 8 },
+
+  // Floating Button
+  fabContainer: { position: "absolute", bottom: 32, left: 24, right: 24 },
+  primaryBtn: {
+    height: 56,
+    backgroundColor: "#0F172A",
+    borderRadius: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    shadowColor: "#0F172A",
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  primaryBtnText: { color: "#FFF", fontSize: 16, fontWeight: "700" },
+  disabledBtn: { backgroundColor: "#94A3B8", shadowOpacity: 0 },
 });

@@ -7,34 +7,22 @@ import {
   TouchableOpacity,
   TextInput,
   StatusBar,
+  Modal,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Animatable from "react-native-animatable";
-
-// IMPORT THE STORE (The Single Source of Truth)
 import { useQueueStore } from "../../store/queueStore";
-
-const COLORS = {
-  primary: "#2563EB",
-  bg: "#F8FAFC",
-  surface: "#FFFFFF",
-  text: "#0F172A",
-  subText: "#64748B",
-  border: "#E2E8F0",
-  accent: "#EEF2FF",
-  success: "#10B981",
-  warning: "#F59E0B",
-  danger: "#EF4444",
-};
+import { COLORS, SHADOWS } from "../../theme";
 
 export default function PatientListScreen({ navigation }: any) {
   const [search, setSearch] = useState("");
+  const [modalVisible, setModalVisible] = useState(false);
+  const [newPatientName, setNewPatientName] = useState("");
 
-  // CONNECT TO LIVE DATA
-  const { queue, stats } = useQueueStore();
+  // CONNECT TO STORE
+  const { queue, stats } = useQueueStore(); // You might need to add an 'addPatient' action to your store later
 
-  // Filter logic for the search bar
   const filteredQueue = queue.filter(
     (p) =>
       p.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -54,27 +42,17 @@ export default function PatientListScreen({ navigation }: any) {
         </View>
         <View>
           <Text style={styles.name}>{item.name}</Text>
-          <Text style={styles.issue}>
-            {item.type} • {item.arrivalTime}
-          </Text>
+          <Text style={styles.issue}>{item.type}</Text>
         </View>
       </View>
-
-      <View style={styles.cardRight}>
-        <View style={[styles.statusBadge, styles.statusWaiting]}>
-          <Text style={[styles.statusText, { color: COLORS.warning }]}>
-            {item.status}
-          </Text>
-        </View>
-        <TouchableOpacity style={styles.actionIcon}>
-          <Ionicons name="ellipsis-vertical" size={20} color={COLORS.subText} />
-        </TouchableOpacity>
+      <View style={styles.statusBadge}>
+        <Text style={styles.statusText}>{item.status}</Text>
       </View>
     </Animatable.View>
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
       <StatusBar barStyle="dark-content" />
 
       {/* HEADER */}
@@ -85,11 +63,15 @@ export default function PatientListScreen({ navigation }: any) {
         >
           <Ionicons name="arrow-back" size={24} color={COLORS.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Patient Queue</Text>
-        {/* Shows real-time count */}
-        <View style={styles.countBadge}>
-          <Text style={styles.countText}>{queue.length}</Text>
-        </View>
+        <Text style={styles.headerTitle}>Queue ({queue.length})</Text>
+
+        {/* ADD WALK-IN BUTTON */}
+        <TouchableOpacity
+          style={styles.addBtn}
+          onPress={() => setModalVisible(true)}
+        >
+          <Ionicons name="add" size={24} color="#FFF" />
+        </TouchableOpacity>
       </View>
 
       {/* SEARCH */}
@@ -97,34 +79,16 @@ export default function PatientListScreen({ navigation }: any) {
         <Ionicons
           name="search"
           size={20}
-          color={COLORS.subText}
+          color="#94A3B8"
           style={styles.searchIcon}
         />
         <TextInput
-          placeholder="Search patient or token..."
+          placeholder="Search by name or token..."
           style={styles.searchInput}
-          placeholderTextColor={COLORS.subText}
+          placeholderTextColor="#94A3B8"
           value={search}
           onChangeText={setSearch}
         />
-      </View>
-
-      {/* LIVE STATS */}
-      <View style={styles.statsRow}>
-        <View style={styles.statItem}>
-          <Text style={styles.statLabel}>Waiting</Text>
-          <Text style={styles.statValue}>{stats.waiting}</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={styles.statLabel}>Completed</Text>
-          <Text style={styles.statValue}>{stats.completed}</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={styles.statLabel}>Avg Wait</Text>
-          <Text style={styles.statValue}>{stats.avgTime}</Text>
-        </View>
       </View>
 
       {/* LIST */}
@@ -136,139 +100,174 @@ export default function PatientListScreen({ navigation }: any) {
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Ionicons
-              name="checkmark-circle-outline"
-              size={64}
-              color={COLORS.border}
-            />
-            <Text style={styles.emptyText}>
-              All caught up! No patients waiting.
-            </Text>
+            <Ionicons name="people-outline" size={64} color="#E2E8F0" />
+            <Text style={styles.emptyText}>No patients in queue</Text>
+            <TouchableOpacity onPress={() => setModalVisible(true)}>
+              <Text style={styles.emptyLink}>+ Add Walk-in Patient</Text>
+            </TouchableOpacity>
           </View>
         }
       />
+
+      {/* MOCK MODAL FOR ADDING PATIENT */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Add Walk-in Patient</Text>
+            <TextInput
+              placeholder="Patient Name"
+              style={styles.modalInput}
+              value={newPatientName}
+              onChangeText={setNewPatientName}
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalBtn, styles.cancelBtn]}
+                onPress={() => setModalVisible(false)}
+              >
+                <Text style={styles.cancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalBtn, styles.confirmBtn]}
+                onPress={() => {
+                  setModalVisible(false);
+                  alert(`Added ${newPatientName} to queue!`); // Mock action
+                  setNewPatientName("");
+                }}
+              >
+                <Text style={styles.confirmText}>Add to Queue</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bg },
+  container: { flex: 1, backgroundColor: "#F8FAFC" },
   header: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 20,
+    justifyContent: "space-between",
+    paddingHorizontal: 24,
     paddingVertical: 16,
-    gap: 12,
   },
   backBtn: {
     padding: 8,
     borderRadius: 12,
-    backgroundColor: COLORS.surface,
+    backgroundColor: "#FFF",
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: "#F1F5F9",
   },
-  headerTitle: { fontSize: 20, fontWeight: "800", color: COLORS.text, flex: 1 },
-  countBadge: {
+  headerTitle: { fontSize: 18, fontWeight: "800", color: "#0F172A" },
+  addBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     backgroundColor: COLORS.primary,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  countText: { color: "#FFF", fontWeight: "700", fontSize: 14 },
 
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLORS.surface,
-    marginHorizontal: 20,
+    backgroundColor: "#FFF",
+    marginHorizontal: 24,
     paddingHorizontal: 16,
-    borderRadius: 14,
+    borderRadius: 16,
     height: 50,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: "#F1F5F9",
     marginBottom: 20,
   },
   searchIcon: { marginRight: 10 },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: COLORS.text,
-    fontWeight: "500",
-    height: "100%",
-  },
+  searchInput: { flex: 1, fontSize: 16, color: "#0F172A", height: "100%" },
 
-  statsRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: 24,
-    marginBottom: 16,
-    backgroundColor: COLORS.surface,
-    marginHorizontal: 20,
-    paddingVertical: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  statItem: { alignItems: "center", flex: 1 },
-  statLabel: {
-    fontSize: 11,
-    color: COLORS.subText,
-    fontWeight: "600",
-    textTransform: "uppercase",
-  },
-  statValue: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: COLORS.text,
-    marginTop: 4,
-  },
-  statDivider: { width: 1, height: "80%", backgroundColor: COLORS.border },
+  listContent: { paddingHorizontal: 24, paddingBottom: 100 },
 
-  listContent: { paddingHorizontal: 20, paddingBottom: 40 },
   card: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: COLORS.surface,
+    backgroundColor: "#FFF",
     padding: 16,
     borderRadius: 16,
     marginBottom: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    shadowColor: "#000",
-    shadowOpacity: 0.02,
-    shadowRadius: 8,
-    elevation: 2,
+    ...SHADOWS.light,
   },
   cardLeft: { flexDirection: "row", alignItems: "center", gap: 16 },
   tokenBox: {
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: COLORS.accent,
+    backgroundColor: "#F8FAFC",
     alignItems: "center",
     justifyContent: "center",
   },
-  tokenText: { fontSize: 16, fontWeight: "800", color: COLORS.primary },
-  name: { fontSize: 15, fontWeight: "700", color: COLORS.text },
-  issue: {
-    fontSize: 12,
-    color: COLORS.subText,
-    marginTop: 2,
-    fontWeight: "500",
+  tokenText: { fontSize: 16, fontWeight: "800", color: "#0F172A" },
+  name: { fontSize: 15, fontWeight: "700", color: "#0F172A" },
+  issue: { fontSize: 12, color: "#64748B", marginTop: 2 },
+  statusBadge: {
+    backgroundColor: "#FFF7ED",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
   },
-
-  cardRight: { alignItems: "flex-end", gap: 8 },
-  statusBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-  statusWaiting: { backgroundColor: "#FEF3C7" },
-  statusText: { fontSize: 10, fontWeight: "700", letterSpacing: 0.5 },
-  actionIcon: { padding: 4 },
+  statusText: { fontSize: 10, fontWeight: "700", color: "#C2410C" },
 
   emptyState: { alignItems: "center", justifyContent: "center", marginTop: 60 },
   emptyText: {
     marginTop: 16,
-    color: COLORS.subText,
+    color: "#94A3B8",
     fontSize: 16,
     fontWeight: "500",
   },
+  emptyLink: { marginTop: 8, color: COLORS.primary, fontWeight: "700" },
+
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    width: "85%",
+    backgroundColor: "#FFF",
+    borderRadius: 24,
+    padding: 24,
+    ...SHADOWS.medium,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 16,
+    textAlign: "center",
+  },
+  modalInput: {
+    backgroundColor: "#F8FAFC",
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    marginBottom: 24,
+  },
+  modalButtons: { flexDirection: "row", gap: 12 },
+  modalBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  cancelBtn: { backgroundColor: "#F1F5F9" },
+  confirmBtn: { backgroundColor: COLORS.primary },
+  cancelText: { fontWeight: "700", color: "#64748B" },
+  confirmText: { fontWeight: "700", color: "#FFF" },
 });
