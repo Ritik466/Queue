@@ -4,7 +4,14 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon src/app.ts"
+    "dev": "nodemon src/app.ts",
+    "build": "npx tsc",
+    "start": "node dist/app.js",
+    "docker:build": "docker build -t queue-backend .",
+    "docker:run": "docker run -p 5001:5001 --env-file .env queue-backend",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate deploy",
+    "prisma:seed": "ts-node src/seed.ts"
   },
   "keywords": [],
   "author": "",

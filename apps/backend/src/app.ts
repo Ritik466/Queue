@@ -29,16 +29,25 @@ const server = http.createServer(app);
 // Initialize Socket.io
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: process.env.CORS_ORIGIN || "*",
     methods: ["GET", "POST"],
+    credentials: true,
   },
 });
 
 // Middleware
-app.use(express.json());
-app.use(cors());
-app.use(helmet());
-app.use(morgan("dev"));
+app.use(express.json({ limit: '10mb' }));
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || "*",
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
+}));
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+}));
+app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 app.use("/api/auth", authRoutes); // This enables /api/auth/login
 
 // --- 🚦 ROUTES ---
@@ -79,8 +88,10 @@ io.on("connection", (socket) => {
 app.set("io", io);
 
 // Start Server
-const PORT = process.env.PORT || 5001;
-server.listen(PORT, () => {
+const PORT = Number(process.env.PORT) || 5001;
+const HOST = process.env.HOST || "0.0.0.0";
+
+server.listen(PORT, HOST, () => {
   console.log(`
   🚀 SERVER RUNNING
   -----------------

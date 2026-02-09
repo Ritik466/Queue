@@ -5,7 +5,14 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
 const prisma = new PrismaClient();
-const JWT_SECRET = process.env.JWT_SECRET || "super_secret_unicorn_key_123";
+
+const getJwtSecret = () => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error("JWT_SECRET environment variable is required");
+  }
+  return secret;
+};
 
 // ==========================================
 // 1. SIGN UP (Register)
@@ -44,7 +51,7 @@ export const signup = async (req: Request, res: Response) => {
         role: role ? (role as Role) : Role.PATIENT,
       },
     }); // E. Generate Token
-    const token = jwt.sign({ id: newUser.id, role: newUser.role }, JWT_SECRET, {
+    const token = jwt.sign({ id: newUser.id, role: newUser.role }, getJwtSecret(), {
       expiresIn: "30d",
     });
 
@@ -95,7 +102,7 @@ export const login = async (req: Request, res: Response) => {
     }
 
     // D. Generate Token
-    const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, {
+    const token = jwt.sign({ id: user.id, role: user.role }, getJwtSecret(), {
       expiresIn: "30d",
     });
 
